@@ -88,6 +88,15 @@ export default defineConfig(() => {
     },
     build: {
       chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            xlsx: ['xlsx'],
+            recharts: ['recharts'],
+            supabase: ['@supabase/supabase-js']
+          }
+        }
+      }
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',

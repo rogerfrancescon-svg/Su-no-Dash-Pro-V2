@@ -93,20 +93,20 @@ export function Integrados({ integrados, visits, totalVisits, onUpdate, onDelete
           />
         </div>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1">
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 min-w-[700px]">
-            <thead className="bg-slate-50 text-slate-700 font-medium border-b border-slate-200">
+        <div className="overflow-auto max-h-[calc(100vh-230px)]">
+          <table className="w-full text-left text-sm text-slate-600 min-w-[700px] relative">
+            <thead className="bg-slate-50 text-slate-700 font-medium border-b border-slate-200 sticky top-0 z-20 shadow-sm">
               <tr>
-                <th className="px-6 py-4">Lote</th>
-                <th className="px-6 py-4">Nome</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Datas</th>
-                <th className="px-6 py-4 text-right">Idade (Aprox)</th>
-                <th className="px-6 py-4 text-right">Consumo Real (vs Alvo)</th>
-                <th className="px-6 py-4 text-right">Mortalidade</th>
-                <th className="px-6 py-4 text-right">Ações</th>
+                <th className="px-4 py-3 whitespace-nowrap bg-slate-50">Lote</th>
+                <th className="px-4 py-3 whitespace-nowrap bg-slate-50">Nome</th>
+                <th className="px-4 py-3 whitespace-nowrap bg-slate-50">Status</th>
+                <th className="px-4 py-3 whitespace-nowrap bg-slate-50">Datas</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">Idade (Aprox)</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">Consumo Real (vs Alvo)</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">Mortalidade</th>
+                <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

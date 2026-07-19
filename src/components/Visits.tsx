@@ -156,7 +156,22 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
                     <td className="px-2 py-2 whitespace-nowrap"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">{v.tipoLote || 'Misto'}</span></td>
                     <td className="px-2 py-2 whitespace-nowrap">{v.idade}</td>
                     <td className="px-2 py-2 whitespace-nowrap">{v.animaisAlojados ?? '-'}</td>
-                    <td className="px-2 py-2 whitespace-nowrap">{v.animaisMortos ?? '-'}</td>
+                    <td className="px-2 py-2 whitespace-nowrap">
+                      {v.animaisMortos !== undefined && v.animaisMortos !== null ? (
+                        <div className="flex items-center gap-1.5">
+                          <span>{v.animaisMortos}</span>
+                          {v.animaisAlojados ? (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
+                              {((Number(v.animaisMortos) / Number(v.animaisAlojados)) * 100).toFixed(2)}%
+                            </span>
+                          ) : v.mortalidade ? (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
+                              {v.mortalidade}%
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : '-'}
+                    </td>
                     <td className="px-2 py-2 whitespace-nowrap">{v.volumeTotalCargas ?? '-'}</td>
                     <td className="px-2 py-2">
                       <div className="text-xs leading-relaxed min-w-[300px] whitespace-pre-wrap" title={v.recomendacao}>
@@ -375,7 +390,18 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
                         </div>
                         <div>
                           <span className="text-slate-500 mr-1">Mortalidade:</span>
-                          <span className="font-medium text-slate-700">{visit.animaisMortos ?? '-'}</span>
+                          <span className="font-medium text-slate-700 flex items-center gap-1.5">
+                            {visit.animaisMortos ?? '-'}
+                            {visit.animaisMortos !== undefined && visit.animaisMortos !== null && visit.animaisAlojados ? (
+                              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                                {((Number(visit.animaisMortos) / Number(visit.animaisAlojados)) * 100).toFixed(2)}%
+                              </span>
+                            ) : visit.mortalidade ? (
+                              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                                {visit.mortalidade}%
+                              </span>
+                            ) : null}
+                          </span>
                         </div>
                       </div>
                       

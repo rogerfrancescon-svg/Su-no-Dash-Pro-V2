@@ -11,7 +11,7 @@ import { ImportData } from './components/ImportData';
 import { Login } from './components/Login';
 import { Notifications } from './components/Notifications';
 import { Visit, Integrado } from './types';
-import { Menu, X, LogOut, Download, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Menu, X, LogOut, Download, Wifi, WifiOff, RefreshCw, Moon, Sun } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { storage } from './lib/storage';
 import { supabase } from './lib/supabase';
@@ -32,6 +32,24 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
 
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
 
   useEffect(() => {
     const handleOnline = async () => {
@@ -430,7 +448,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
+      <div className="flex h-screen items-center justify-center bg-slate-50">
         <p className="text-slate-500 font-medium">Carregando dados...</p>
       </div>
     );
@@ -445,7 +463,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F8FAFC] font-sans text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-slate-50 font-sans text-slate-900">
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div 
@@ -460,7 +478,7 @@ export default function App() {
 
       <main className="flex-1 flex flex-col w-full min-w-0">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
             <button 
               className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
               onClick={() => setIsSidebarOpen(true)}
@@ -469,10 +487,10 @@ export default function App() {
             </button>
             <h1 className="text-lg md:text-xl font-bold text-slate-800 truncate">{getPageTitle()}</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 sm:gap-4 shrink-0">
             <span className="text-sm text-slate-500 hidden sm:inline-block">Data de Campo: {new Date().toLocaleDateString('pt-BR')}</span>
             
-            <div className="flex items-center gap-2 mr-2">
+            <div className="flex items-center gap-1 sm:gap-2 mr-0 sm:mr-2">
               {isOnline ? (
                 <button 
                   onClick={handleForceSync}
@@ -491,6 +509,15 @@ export default function App() {
                 </div>
               )}
             </div>
+            
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)} 
+              className="text-slate-500 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition-colors" 
+              title={isDarkMode ? "Modo Claro" : "Modo Escuro"}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
             <Notifications visits={visits} integrados={integrados} />
             <button onClick={handleLogout} className="text-slate-500 hover:text-slate-700 flex items-center gap-1 text-sm font-medium transition-colors" title="Sair">
               <LogOut className="w-5 h-5" />

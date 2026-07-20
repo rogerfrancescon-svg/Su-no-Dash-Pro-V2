@@ -191,6 +191,19 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
   const expectedWeight = currentIdade > 0 ? getExpectedWeight(currentIdade, formData.tipoLote as any, formData.pesoAloj) : null;
 
 
+    const dynamicChartData = React.useMemo(() => {
+    if (currentIdade <= 0) return [];
+    const data = [];
+    const maxDays = Math.min(150, currentIdade + 10);
+    for (let d = 1; d <= maxDays; d++) {
+      data.push({
+        dia: d,
+        consumoAcumulado: getExpectedConsumption(d, formData.tipoLote as any, formData.pesoAloj)
+      });
+    }
+    return data;
+  }, [currentIdade, formData.tipoLote, formData.pesoAloj]);
+
   const currentConsumoReal = Number(formData.consumoAcumuladoReal) || null;
   const currentDiffKg = (currentConsumoReal !== null && expectedConsumption !== null) ? (currentConsumoReal - expectedConsumption) : null;
   const currentDiffPct = (currentDiffKg !== null && expectedConsumption && expectedConsumption > 0) ? (currentDiffKg / expectedConsumption * 100) : null;
@@ -571,9 +584,9 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
             <h3 className="text-sm font-bold text-slate-500 mb-4">Acompanhamento de Consumo (Interativo)</h3>
             <div className="h-64 bg-slate-50 border border-slate-200 rounded-lg p-2 md:p-4 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={growthCurve.slice(0, Math.min(growthCurve.length, currentIdade + 10))} margin={{ top: 5, right: 20, bottom: 25, left: 0 }}>
+                <LineChart data={dynamicChartData} margin={{ top: 5, right: 20, bottom: 25, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="dia" label={{ value: 'Idade (Dias)', position: 'insideBottom', offset: -10 }} stroke="#64748b" fontSize={12} />
+                  <XAxis dataKey="dia" type="number" domain={['dataMin', 'dataMax']} label={{ value: 'Idade (Dias)', position: 'insideBottom', offset: -10 }} stroke="#64748b" fontSize={12} />
                   <YAxis label={{ value: 'Consumo (kg)', angle: -90, position: 'insideLeft' }} stroke="#64748b" fontSize={12} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                   <Line type="monotone" dataKey="consumoAcumulado" stroke="#3b82f6" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 4 }} name="Esperado" />
@@ -582,7 +595,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
                       x={currentIdade} 
                       y={Number(formData.consumoAcumuladoReal)} 
                       r={6} 
-                      fill={Number(formData.consumoAcumuladoReal) >= (expectedConsumption || 0) ? "#22c55e" : "#ef4444"} 
+                      fill={(currentDiffKg !== null && currentDiffKg >= -5 && currentDiffKg <= 5) ? "#10b981" : (currentDiffKg !== null && currentDiffKg < -5) ? "#ef4444" : "#3b82f6"} 
                       stroke="white" 
                       strokeWidth={2}
                        
@@ -591,9 +604,10 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
                 </LineChart>
               </ResponsiveContainer>
               <p className="text-xs text-center text-slate-500 mt-2">
-                O ponto colorido mostra o consumo real atual vs a curva esperada.
-                <span className="inline-block w-3 h-3 rounded-full bg-green-500 ml-2 mr-1 align-middle"></span> Acima/Na meta
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500 ml-2 mr-1 align-middle"></span> Abaixo
+                O ponto colorido mostra o consumo real atual vs a curva esperada.<br className="md:hidden" />
+                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500 ml-2 mr-1 align-middle"></span> Na meta (±5kg)
+                <span className="inline-block w-3 h-3 rounded-full bg-red-500 ml-2 mr-1 align-middle"></span> Abaixo (&lt;-5kg)
+                <span className="inline-block w-3 h-3 rounded-full bg-blue-500 ml-2 mr-1 align-middle"></span> Acima (&gt;5kg)
               </p>
             </div>
           </div>

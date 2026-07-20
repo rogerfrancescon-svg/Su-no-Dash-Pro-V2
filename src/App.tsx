@@ -32,6 +32,17 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(typeof window !== 'undefined' ? localStorage.getItem('LAST_SYNC_TIME') : null);
+  const [lastSyncUser, setLastSyncUser] = useState<string | null>(typeof window !== 'undefined' ? localStorage.getItem('LAST_SYNC_USER') : null);
+
+  useEffect(() => {
+    const handleSyncCompleted = () => {
+      setLastSyncTime(localStorage.getItem('LAST_SYNC_TIME'));
+      setLastSyncUser(localStorage.getItem('LAST_SYNC_USER'));
+    };
+    window.addEventListener('sync-completed', handleSyncCompleted);
+    return () => window.removeEventListener('sync-completed', handleSyncCompleted);
+  }, []);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -488,7 +499,15 @@ export default function App() {
             <h1 className="text-lg md:text-xl font-bold text-slate-800 truncate">{getPageTitle()}</h1>
           </div>
           <div className="flex items-center gap-1 sm:gap-4 shrink-0">
-            <span className="text-sm text-slate-500 hidden sm:inline-block">Data de Campo: {new Date().toLocaleDateString('pt-BR')}</span>
+            <div className="hidden lg:flex flex-col items-end justify-center mr-2">
+              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Data: {new Date().toLocaleDateString('pt-BR')}</span>
+              {lastSyncTime && (
+                <span className="text-[10px] text-slate-400 whitespace-nowrap" title={`Sincronizado por: ${lastSyncUser && lastSyncUser !== 'offline' ? lastSyncUser : 'Você'}`}>
+                  Última sinc: {new Date(lastSyncTime).toLocaleDateString('pt-BR')} {new Date(lastSyncTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  {lastSyncUser && lastSyncUser !== 'offline' && lastSyncUser !== 'Usuário logado' ? ` (${lastSyncUser.split('@')[0]})` : ''}
+                </span>
+              )}
+            </div>
             
             <div className="flex items-center gap-1 sm:gap-2 mr-0 sm:mr-2">
               {isOnline ? (

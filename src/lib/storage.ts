@@ -150,6 +150,7 @@ export const storage = {
         localStorage.setItem(INTEGRADOS_KEY, JSON.stringify([]));
         localStorage.setItem(VISITS_KEY, JSON.stringify([]));
         localStorage.setItem('LAST_SYNC_TIME', new Date().toISOString());
+        localStorage.setItem('LAST_SYNC_USER', session?.user?.email || 'Usuário logado');
         window.dispatchEvent(new Event('sync-completed'));
         return true;
       }
@@ -257,6 +258,7 @@ export const storage = {
       localStorage.setItem(INTEGRADOS_KEY, JSON.stringify(integrados));
       localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
       localStorage.setItem('LAST_SYNC_TIME', new Date().toISOString());
+        localStorage.setItem('LAST_SYNC_USER', session?.user?.email || 'Usuário logado');
       window.dispatchEvent(new Event('sync-completed'));
       return true;
     } catch (e) {
@@ -386,6 +388,7 @@ export const storage = {
           }
         }
         localStorage.setItem('LAST_SYNC_TIME', new Date().toISOString());
+        localStorage.setItem('LAST_SYNC_USER', session?.user?.email || 'Usuário logado');
         window.dispatchEvent(new Event('sync-completed'));
       }
     } catch (e: any) {

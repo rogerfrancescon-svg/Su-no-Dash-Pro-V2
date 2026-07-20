@@ -11,6 +11,7 @@ export function Notifications({ visits, integrados }: NotificationsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasOfflineData, setHasOfflineData] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [lastSyncUser, setLastSyncUser] = useState<string | null>(null);
   const [offlineCount, setOfflineCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +37,9 @@ export function Notifications({ visits, integrados }: NotificationsProps) {
       
       const syncTime = localStorage.getItem('LAST_SYNC_TIME');
       setLastSyncTime(syncTime);
+      
+      const syncUser = localStorage.getItem('LAST_SYNC_USER');
+      setLastSyncUser(syncUser);
     } catch (e) {
       console.error(e);
     }
@@ -108,9 +112,15 @@ export function Notifications({ visits, integrados }: NotificationsProps) {
                     Todos os dados estão sincronizados com o servidor.
                   </p>
                   {lastSyncTime && (
-                    <p className="text-xs text-slate-500 mt-2 font-medium">
-                      Última sincronização: {formatDate(lastSyncTime)}
-                    </p>
+                    <div className="mt-3 bg-white p-2 rounded border border-emerald-100">
+                      <p className="text-xs text-slate-500 font-medium">Última sincronização:</p>
+                      <p className="text-sm text-slate-700 font-semibold">{formatDate(lastSyncTime)}</p>
+                      {lastSyncUser && lastSyncUser !== 'offline' && lastSyncUser !== 'Usuário logado' && (
+                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                           Por: <span className="text-slate-700 truncate">{lastSyncUser}</span>
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

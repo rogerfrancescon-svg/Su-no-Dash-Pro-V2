@@ -4,9 +4,9 @@ import { defaultMetas, defaultMetasFemea } from '../data';
 
 const INTEGRADOS_KEY = 'suino_dashpro_integrados';
 const VISITS_KEY = 'suino_dashpro_visits';
-const OFFLINE_QUEUE_KEY = 'suino_dashpro_offline_queue';
-const OFFLINE_DELETE_VISIT_QUEUE = 'suino_dashpro_offline_delete_visit';
-const OFFLINE_DELETE_INTEGRADO_QUEUE = 'suino_dashpro_offline_delete_integrado';
+export const OFFLINE_QUEUE_KEY = 'suino_dashpro_offline_queue';
+export const OFFLINE_DELETE_VISIT_QUEUE = 'suino_dashpro_offline_delete_visit';
+export const OFFLINE_DELETE_INTEGRADO_QUEUE = 'suino_dashpro_offline_delete_integrado';
 
 const getIntegradosLocal = (): Integrado[] => {
   try {
@@ -38,6 +38,31 @@ const formatDate = (dStr: string) => {
   }
   return dStr;
 };
+
+
+function addVisitsToOfflineQueue(toProcess: any[]) {
+  try {
+    const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+    for (const v of toProcess) {
+      const existingIdx = queue.findIndex((q: any) => q.id === v.id);
+      if (existingIdx >= 0) {
+        queue[existingIdx] = v;
+      } else {
+        queue.push(v);
+      }
+    }
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+    console.log('Added ' + toProcess.length + ' visits to offline queue');
+  } catch (e) {
+    console.error('Failed to add to offline queue', e);
+  }
+}
+
+function isNetworkError(err: any): boolean {
+  if (!err) return false;
+  const msg = typeof err === 'string' ? err : err.message || '';
+  return msg.includes('fetch') || msg.includes('Failed') || err.code === '0' || String(err).includes('fetch') || String(err).includes('Failed');
+}
 
 export const storage = {
   syncFromSupabase: async () => {
@@ -75,10 +100,17 @@ export const storage = {
           const queue = JSON.parse(queueStr);
           if (queue && queue.length > 0) {
             console.log('Pushing offline queue to Supabase before sync:', queue.length, 'records');
-            await storage.saveVisits(getVisitsLocal(), queue);
             localStorage.removeItem(OFFLINE_QUEUE_KEY);
+            await storage.saveVisits(getVisitsLocal(), queue);
           }
         }
+        
+        // Check if offline queue is still populated (meaning saveVisits hit a network error and re-queued)
+        if (localStorage.getItem(OFFLINE_QUEUE_KEY) && JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]').length > 0) {
+           console.warn('Offline queue was repopulated due to network error. Aborting sync to protect local pending data.');
+           return false;
+        }
+        
       } catch (e) {
         console.error('Error processing offline queue, aborting sync to protect local data:', e);
         return false; // MUST abort sync to prevent overwriting local pending data with server state!
@@ -117,6 +149,8 @@ export const storage = {
       if (allData.length === 0) {
         localStorage.setItem(INTEGRADOS_KEY, JSON.stringify([]));
         localStorage.setItem(VISITS_KEY, JSON.stringify([]));
+        localStorage.setItem('LAST_SYNC_TIME', new Date().toISOString());
+        window.dispatchEvent(new Event('sync-completed'));
         return true;
       }
 
@@ -222,6 +256,8 @@ export const storage = {
       const integrados = Array.from(integradosMap.values());
       localStorage.setItem(INTEGRADOS_KEY, JSON.stringify(integrados));
       localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
+      localStorage.setItem('LAST_SYNC_TIME', new Date().toISOString());
+      window.dispatchEvent(new Event('sync-completed'));
       return true;
     } catch (e) {
       console.warn('Failed to sync from supabase:', e);
@@ -251,15 +287,12 @@ export const storage = {
     } catch (e) {}
 
     const userId = session?.user?.id;
-    
     const integrados = getIntegradosLocal();
-    
     const toUpdate = [];
     const toInsert = [];
     const originalVisitsWithFakeIds: Visit[] = [];
-    
     const toProcess = visitsToSyncToSupabase || visits;
-    
+
     for (const v of toProcess) {
       const integrado = integrados.find(i => i.id === v.integradoId);
       const toNum = (val: any) => (val === '' || val === null || val === undefined || isNaN(Number(val))) ? null : Number(val);
@@ -292,11 +325,11 @@ export const storage = {
         'Peso aloj': toNum(v.pesoAloj),
         'Pontuação Sanitária': toNum(v.pontuacaoSanitaria),
       };
-      
+
       if (userId) {
         row.user_id = userId;
       }
-      
+
       if (v.id && !v.id.toString().startsWith('v_') && !v.id.toString().startsWith('dummy_')) {
         row.id = v.id;
         toUpdate.push(row);
@@ -306,36 +339,25 @@ export const storage = {
       }
     }
 
+    // LOCAL PERSISTENCE FIRST
+    // Always save to local storage immediately so it's not lost if network throws
+    localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
+
     try {
       if (!session || session.user?.id === 'offline') {
         console.warn('Offline mode: skipping saveVisits to Supabase');
-        
-        // Add to offline queue
-        try {
-          const queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
-          
-          // Add newly modified visits to queue
-          for (const v of toProcess) {
-            const existingIdx = queue.findIndex((q: any) => q.id === v.id);
-            if (existingIdx >= 0) {
-              queue[existingIdx] = v;
-            } else {
-              queue.push(v);
-            }
-          }
-          
-          localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-          console.log('Added ' + toProcess.length + ' visits to offline queue');
-        } catch (e) {
-          console.error('Failed to add to offline queue', e);
-        }
+        addVisitsToOfflineQueue(toProcess);
       } else {
         if (toUpdate.length > 0) {
           for (let i = 0; i < toUpdate.length; i += 500) {
             const chunk = toUpdate.slice(i, i + 500);
             const { error } = await supabase.from('registros').upsert(chunk);
             if (error) {
-              console.warn('Supabase upsert error:', error);
+              if (isNetworkError(error)) {
+                console.warn('Network error on upsert, adding to offline queue');
+                addVisitsToOfflineQueue(toProcess);
+                return visits;
+              }
               throw new Error(error.message);
             }
           }
@@ -346,28 +368,36 @@ export const storage = {
             const chunk = toInsert.slice(i, i + 500);
             const { data, error } = await supabase.from('registros').insert(chunk).select('id');
             if (error) {
-              console.warn('Supabase insert error:', error);
+              if (isNetworkError(error)) {
+                console.warn('Network error on insert, adding to offline queue');
+                addVisitsToOfflineQueue(toProcess);
+                return visits;
+              }
               throw new Error(error.message);
             }
             if (data) insertedRows = insertedRows.concat(data);
           }
-          
-          // Update local visits with real IDs
+
           if (insertedRows.length === originalVisitsWithFakeIds.length) {
             for (let i = 0; i < insertedRows.length; i++) {
               originalVisitsWithFakeIds[i].id = insertedRows[i].id;
             }
+            localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
           }
         }
+        localStorage.setItem('LAST_SYNC_TIME', new Date().toISOString());
+        window.dispatchEvent(new Event('sync-completed'));
       }
-      
-      // Save updated visits to local storage only if DB push was successful (or offline)
-      localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
     } catch (e: any) {
-      console.warn('saveVisits failed:', e);
-      throw e; // Propagate the error to the UI
+      if (isNetworkError(e)) {
+         console.warn('Network error caught, adding to offline queue');
+         addVisitsToOfflineQueue(toProcess);
+      } else {
+         console.warn('saveVisits failed with non-network error:', e);
+         throw e;
+      }
     }
-    
+
     return visits;
   },
 
@@ -410,7 +440,16 @@ export const storage = {
         if (err2) throw err2;
       }
     } catch (e: any) {
-      throw e;
+      if (isNetworkError(e)) {
+        console.warn('Network error caught in deleteIntegrado, adding to offline queue');
+        const queue = JSON.parse(localStorage.getItem(OFFLINE_DELETE_INTEGRADO_QUEUE) || '[]');
+        if (!queue.includes(toDelete.name)) {
+            queue.push(toDelete.name);
+            localStorage.setItem(OFFLINE_DELETE_INTEGRADO_QUEUE, JSON.stringify(queue));
+        }
+      } else {
+        throw e;
+      }
     }
   },
 
@@ -439,7 +478,18 @@ export const storage = {
         if (error) throw error;
       }
     } catch (e: any) {
-      throw e;
+      if (isNetworkError(e)) {
+        console.warn('Network error caught in deleteVisit, adding to offline queue');
+        if (!id.toString().startsWith('v_') && !id.toString().startsWith('dummy_')) {
+            const queue = JSON.parse(localStorage.getItem(OFFLINE_DELETE_VISIT_QUEUE) || '[]');
+            if (!queue.includes(id)) {
+                queue.push(id);
+                localStorage.setItem(OFFLINE_DELETE_VISIT_QUEUE, JSON.stringify(queue));
+            }
+        }
+      } else {
+        throw e;
+      }
     }
   },
 

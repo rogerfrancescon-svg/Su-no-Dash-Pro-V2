@@ -262,7 +262,7 @@ export function preprocessImportData(rawData: string): PreProcessedData {
     const metas = tipoLote === 'Fêmea' ? defaultMetasFemea : defaultMetas;
 
     visits.push({
-      id: `v_${id}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${parsedCount}`,
+      id: crypto.randomUUID(),
       integradoId: id,
       date: finalDateStr,
       idade: calculatedIdade,

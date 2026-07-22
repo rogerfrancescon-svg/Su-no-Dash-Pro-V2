@@ -52,11 +52,13 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     const { alojamentoDate, integradoNome, ...visitData } = formData;
     const integradoId = `i_${(integradoNome || '').replace(/\s+/g, '').toLowerCase()}_${(alojamentoDate || '').replace(/[-/]/g, '')}`;
     onSave({
       ...visitData,
-      id: initialData ? initialData.id : `v_${integradoId}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: initialData ? initialData.id : crypto.randomUUID(),
       integradoId,
       idade: Number(visitData.idade) || 0,
       consumoAcumuladoReal: visitData.consumoAcumuladoReal ? Number(visitData.consumoAcumuladoReal) : undefined,

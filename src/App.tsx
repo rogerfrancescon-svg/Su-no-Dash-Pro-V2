@@ -153,8 +153,16 @@ export default function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
+      if (!session) {
+        setSession((prev: any) => {
+          if (prev && prev.user?.id === 'offline') return prev;
+          if (!window.navigator.onLine) {
+             return { user: { id: 'offline' } };
+          }
+          return null;
+        });
+      } else {
+        setSession(session);
         loadData();
       }
     });

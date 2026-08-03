@@ -67,6 +67,11 @@ function isNetworkError(err: any): boolean {
 export const storage = {
   syncFromSupabase: async () => {
     try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        console.warn('Cannot sync from Supabase: Navigator is offline');
+        return false;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session || session.user.id === 'offline') {
         console.warn('Cannot sync from Supabase: No active session');

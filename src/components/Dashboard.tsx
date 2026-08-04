@@ -179,6 +179,7 @@ export function Dashboard({ visits, integrados, onNavigateToVisit }: DashboardPr
       const visitsAtAge = filteredVisits.filter(v => Number(v.idade) === idade);
       
       // Calculate a stable expected consumption using the overall average pesoAloj and dominant tipoLote
+      // For dashboard averages, we just use the default (current) curve by omitting dates.
       const expected = getExpectedConsumption(idade, dominantTipoLote, avgPesoAloj);
       
       const dataPoint: any = {
@@ -222,7 +223,8 @@ export function Dashboard({ visits, integrados, onNavigateToVisit }: DashboardPr
       .filter(v => Number(v.consumoAcumuladoReal) > 0)
       .map(v => {
       const integrado = filteredIntegrados.find(i => i.id === v.integradoId);
-      const expected = getExpectedConsumption(Number(v.idade), v.tipoLote, v.pesoAloj);
+      
+      const expected = getExpectedConsumption(Number(v.idade), v.tipoLote, v.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate);
       
       const abbreviateName = (name?: string) => {
         if (!name) return 'Desconhecido';

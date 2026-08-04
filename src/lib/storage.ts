@@ -1,6 +1,6 @@
 import { Integrado, Visit } from '../types';
 import { supabase } from './supabase';
-import { defaultMetas, defaultMetasFemea } from '../data';
+import { defaultMetas, defaultMetasFemea, getActiveCurve } from '../data';
 
 const INTEGRADOS_KEY = 'suino_dashpro_integrados';
 const VISITS_KEY = 'suino_dashpro_visits';
@@ -71,6 +71,12 @@ export const storage = {
         console.warn('Cannot sync from Supabase: Navigator is offline');
         return false;
       }
+      
+      // Lock check: abort sync if user is currently editing a form
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('EDITING_LOCK') === 'true') {
+        console.warn('Sync aborted because a form is currently being edited.');
+        return false;
+      }
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session || session.user.id === 'offline') {
@@ -107,6 +113,14 @@ export const storage = {
             console.log('Pushing offline queue to Supabase before sync:', queue.length, 'records');
             localStorage.removeItem(OFFLINE_QUEUE_KEY);
             await storage.saveVisits(getVisitsLocal(), queue);
+            
+            // Check if queue was repopulated (network error)
+            const newQueueStr = localStorage.getItem(OFFLINE_QUEUE_KEY);
+            if (!newQueueStr || JSON.parse(newQueueStr).length === 0) {
+                console.log('Offline queue pushed successfully. Skipping full SELECT to prevent replication lag overwrites.');
+                window.dispatchEvent(new Event('sync-completed'));
+                return true;
+            }
           }
         }
         
@@ -223,7 +237,9 @@ export const storage = {
           const calculatedIdade = diffDays >= 0 ? diffDays : 0;
 
           const tipoLote = (getCol(row, 'Tipo Lote') as any) || 'Misto';
-          const metas = tipoLote === 'Fêmea' ? defaultMetasFemea : defaultMetas;
+          
+          const integrado = integradosMap.get(integradoId);
+          const { metas } = getActiveCurve(integrado?.alojamentoDate, integrado?.status, tipoLote, integrado?.fechamentoDate);
           
           const animaisAlojados = parseFloatSafe(getCol(row, 'Animais Alojados'));
           const animaisMortos = parseFloatSafe(getCol(row, 'Animais Mortos'));
@@ -372,6 +388,7 @@ export const storage = {
         console.warn('Offline mode: skipping saveVisits to Supabase');
         addVisitsToOfflineQueue(toProcess);
       } else {
+        localStorage.setItem('LAST_WRITE_TIME', Date.now().toString());
         if (toUpdate.length > 0) {
           for (let i = 0; i < toUpdate.length; i += 500) {
             const chunk = toUpdate.slice(i, i + 500);
@@ -427,6 +444,7 @@ export const storage = {
   },
 
   deleteIntegrado: async (id: string, visitIds?: string[]) => {
+    localStorage.setItem('LAST_WRITE_TIME', Date.now().toString());
     const integrados = getIntegradosLocal();
     const toDelete = integrados.find(i => i.id === id);
     if (!toDelete) return;
@@ -479,6 +497,7 @@ export const storage = {
   },
 
   deleteVisit: async (id: string) => {
+    localStorage.setItem('LAST_WRITE_TIME', Date.now().toString());
     const visits = getVisitsLocal().filter(v => v.id !== id);
     localStorage.setItem(VISITS_KEY, JSON.stringify(visits));
     try {

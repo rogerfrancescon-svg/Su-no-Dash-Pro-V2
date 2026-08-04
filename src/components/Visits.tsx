@@ -144,7 +144,7 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
                 </tr>
               ) : filteredVisits.map((v) => {
                 const integrado = integrados.find(i => i.id === v.integradoId);
-                const expected = getExpectedConsumption(v.idade, v.tipoLote, v.pesoAloj);
+                const expected = getExpectedConsumption(v.idade, v.tipoLote, v.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate);
 
                 return (
                   <tr key={v.id} className="hover:bg-slate-50 transition-colors">
@@ -362,7 +362,8 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
                       <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                         {(() => {
                           const consumoReal = visit.consumoAcumuladoReal;
-                          const consumoEsperado = getExpectedConsumption(visit.idade, visit.tipoLote, visit.pesoAloj);
+                          const integrado = integrados.find(i => i.id === visit.integradoId);
+                          const consumoEsperado = getExpectedConsumption(visit.idade, visit.tipoLote, visit.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate);
                           const diffAcumulado = (consumoReal && consumoEsperado) ? Number((consumoReal - consumoEsperado).toFixed(2)) : null;
                           return (
                             <>

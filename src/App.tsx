@@ -36,6 +36,20 @@ export default function App() {
   const [lastSyncUser, setLastSyncUser] = useState<string | null>(typeof window !== 'undefined' ? localStorage.getItem('LAST_SYNC_USER') : null);
 
   useEffect(() => {
+    if (isVisitFormOpen) {
+      localStorage.setItem('EDITING_LOCK', 'true');
+      if (editingVisitId) {
+        localStorage.setItem('EDITING_VISIT_ID', editingVisitId);
+      } else {
+        localStorage.removeItem('EDITING_VISIT_ID');
+      }
+    } else {
+      localStorage.removeItem('EDITING_LOCK');
+      localStorage.removeItem('EDITING_VISIT_ID');
+    }
+  }, [isVisitFormOpen, editingVisitId]);
+
+  useEffect(() => {
     const handleSyncCompleted = () => {
       setLastSyncTime(localStorage.getItem('LAST_SYNC_TIME'));
       setLastSyncUser(localStorage.getItem('LAST_SYNC_USER'));

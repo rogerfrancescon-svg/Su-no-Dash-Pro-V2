@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Visit, Integrado } from '../types';
-import { growthCurve, growthCurveFemea, getExpectedConsumption, getExpectedWeight, defaultMetas, defaultMetasFemea } from '../data';
+import { growthCurve, growthCurveFemea, getExpectedConsumption, getExpectedWeight, defaultMetas, defaultMetasFemea, getActiveCurve } from '../data';
 import { Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 
@@ -17,7 +17,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
   const [formData, setFormData] = useState<Partial<Visit> & { alojamentoDate?: string, integradoNome?: string }>(() => {
     if (initialData) {
       const integrado = integrados.find(i => i.id === initialData.integradoId);
-      const metas = initialData.tipoLote === 'Fêmea' ? defaultMetasFemea : defaultMetas;
+      const { metas } = getActiveCurve(integrado?.alojamentoDate, integrado?.status, initialData.tipoLote || formData.tipoLote, integrado?.fechamentoDate);
       return {
         ...initialData,
         tipoLote: initialData.tipoLote || 'Misto',
@@ -189,7 +189,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
   };
 
   const currentIdade = Number(formData.idade) || 0;
-  const expectedConsumption = currentIdade > 0 ? getExpectedConsumption(currentIdade, formData.tipoLote as any, formData.pesoAloj) : null;
+  const expectedConsumption = currentIdade > 0 ? getExpectedConsumption(currentIdade, formData.tipoLote as any, formData.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate) : null;
   const expectedWeight = currentIdade > 0 ? getExpectedWeight(currentIdade, formData.tipoLote as any, formData.pesoAloj) : null;
 
 
@@ -200,7 +200,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
     for (let d = 1; d <= maxDays; d++) {
       data.push({
         dia: d,
-        consumoAcumulado: getExpectedConsumption(d, formData.tipoLote as any, formData.pesoAloj)
+        consumoAcumulado: getExpectedConsumption(d, formData.tipoLote as any, formData.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate)
       });
     }
     return data;
@@ -218,7 +218,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
   let prevVisitInfo = null;
   if (!initialData && prevVisit) {
       const prevIdade = prevVisit.idade || 0;
-      const prevExpected = getExpectedConsumption(prevIdade, prevVisit.tipoLote || formData.tipoLote as any, prevVisit.pesoAloj || formData.pesoAloj);
+      const prevExpected = getExpectedConsumption(prevIdade, prevVisit.tipoLote || formData.tipoLote as any, prevVisit.pesoAloj || formData.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate);
       const prevReal = prevVisit.consumoAcumuladoReal;
       
       let diffInfo = '';

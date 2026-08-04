@@ -1,11 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { growthCurve, growthCurveFemea, defaultMetas, defaultMetasFemea } from '../data';
+import { growthCurve, growthCurveFemea, defaultMetas, defaultMetasFemea, getActiveCurve, growthCurvesMisto } from '../data';
 
 export function ReferenceCurve() {
   const [tipoLote, setTipoLote] = useState<'Misto' | 'Fêmea' | 'Macho'>('Misto');
+  const [selectedVersion, setSelectedVersion] = useState<string>(growthCurvesMisto[growthCurvesMisto.length - 1].version);
 
-  const activeCurve = tipoLote === 'Fêmea' ? growthCurveFemea : growthCurve;
-  const activeMetas = tipoLote === 'Fêmea' ? defaultMetasFemea : defaultMetas;
+  const currentCurveObj = tipoLote === 'Fêmea' 
+    ? { curve: growthCurveFemea, metas: defaultMetasFemea }
+    : (growthCurvesMisto.find(c => c.version === selectedVersion) || growthCurvesMisto[growthCurvesMisto.length - 1]);
+
+  const activeCurve = currentCurveObj.curve;
+  const activeMetas = currentCurveObj.metas;
 
   const fullCurve = useMemo(() => {
     const sorted = [...activeCurve].sort((a, b) => a.dia - b.dia);
@@ -42,30 +47,49 @@ export function ReferenceCurve() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <span className="text-sm font-bold text-slate-500 uppercase">Tabela de Referência:</span>
-        <div className="flex bg-slate-100 p-1 rounded-lg">
+        <div className="flex flex-col sm:flex-row bg-slate-100 p-1 rounded-lg w-full md:w-auto">
           <button 
             onClick={() => setTipoLote('Misto')}
-            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${tipoLote === 'Misto' ? 'bg-white shadow text-[#2D452B]' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 px-2 sm:px-4 py-2 rounded-md text-sm font-semibold transition-all ${tipoLote === 'Misto' ? 'bg-white shadow text-[#2D452B]' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Lotes Mistos
           </button>
           <button 
             onClick={() => setTipoLote('Macho')}
-            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${tipoLote === 'Macho' ? 'bg-white shadow text-[#2D452B]' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 px-2 sm:px-4 py-2 rounded-md text-sm font-semibold transition-all ${tipoLote === 'Macho' ? 'bg-white shadow text-[#2D452B]' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Lotes Machos
           </button>
           <button 
             onClick={() => setTipoLote('Fêmea')}
-            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${tipoLote === 'Fêmea' ? 'bg-white shadow text-[#2D452B]' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 px-2 sm:px-4 py-2 rounded-md text-sm font-semibold transition-all ${tipoLote === 'Fêmea' ? 'bg-white shadow text-[#2D452B]' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Lotes Fêmeas
           </button>
-        </div>
+                </div>
+        {tipoLote !== 'Fêmea' && (
+          <div className="md:ml-auto flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+            <span className="text-sm font-medium text-slate-500">Versão da Curva:</span>
+            <select
+              value={selectedVersion}
+              onChange={(e) => setSelectedVersion(e.target.value)}
+              className="w-full sm:w-auto px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D452B] focus:border-[#2D452B]"
+            >
+              {growthCurvesMisto.map(cv => {
+                const [y, m, d] = cv.effectiveDate.split('-');
+                const dateObj = new Date(Number(y), Number(m)-1, Number(d));
+                return (
+                  <option key={cv.version} value={cv.version}>
+                    {cv.version === growthCurvesMisto[growthCurvesMisto.length - 1].version ? `Atual (${cv.version.toUpperCase()})` : `Histórico (${cv.version.toUpperCase()}) - Desde ${dateObj.toLocaleDateString('pt-BR')}`}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
       </div>
-
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider p-6 bg-white border-b border-slate-200">
           Programas Alimentares (Fases) - {tipoLote}

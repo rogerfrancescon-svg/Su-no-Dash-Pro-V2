@@ -1,5 +1,5 @@
 import { Integrado, Visit } from '../types';
-import { defaultMetas, defaultMetasFemea } from '../data';
+import { defaultMetas, defaultMetasFemea, getActiveCurve } from '../data';
 
 export interface PreProcessedData {
   integrados: Integrado[];
@@ -259,7 +259,10 @@ export function preprocessImportData(rawData: string): PreProcessedData {
 
     const tipoLoteRaw = (getCol('tipoLote') || 'Misto').trim();
     const tipoLote = tipoLoteRaw.toLowerCase().includes('f') ? 'Fêmea' : 'Misto';
-    const metas = tipoLote === 'Fêmea' ? defaultMetasFemea : defaultMetas;
+    
+    // try to get alojamento date and status if integrated exists
+    const integradoMatch = existingIntegrados.find(i => i.name.toLowerCase() === cleanIntegradoName);
+    const { metas } = getActiveCurve(integradoMatch?.alojamentoDate, integradoMatch?.status, tipoLote, integradoMatch?.fechamentoDate);
 
     visits.push({
       id: crypto.randomUUID(),

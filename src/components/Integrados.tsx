@@ -26,7 +26,7 @@ export function Integrados({ integrados, visits, totalVisits, onUpdate, onDelete
 
   const filteredIntegrados = [...integrados].filter(i => {
     if (filterStatus !== 'Todos' && i.status !== filterStatus) return false;
-    if (searchTerm && !i.name.toLowerCase().includes(searchTerm.toLowerCase()) && !(i.loteNumber && i.loteNumber.toLowerCase().includes(searchTerm.toLowerCase()))) return false;
+    if (searchTerm && !(i.name || '').toLowerCase().includes(searchTerm.toLowerCase()) && !(i.loteNumber && (i.loteNumber || '').toLowerCase().includes(searchTerm.toLowerCase()))) return false;
     return true;
   }).sort((a, b) => {
     switch (sortBy) {

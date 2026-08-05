@@ -218,7 +218,7 @@ export const storage = {
         if (!integradoNome) continue;
         
         const alojamentoData = formatDate(getCol(row, 'Alojamento') || '');
-        const integradoId = `i_${integradoNome.replace(/\s+/g, '').toLowerCase()}_${alojamentoData.replace(/[-/]/g, '')}`;
+        const integradoId = `i_${String(integradoNome).replace(/\s+/g, '').toLowerCase()}_${alojamentoData.replace(/[-/]/g, '')}`;
         
         if (!integradosMap.has(integradoId)) {
           integradosMap.set(integradoId, {

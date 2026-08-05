@@ -46,7 +46,7 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
 
   const filteredVisits = sortedVisits.filter(v => {
     const integrado = integrados.find(i => i.id === v.integradoId);
-    return integrado?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    return (integrado?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
            v.recomendacao.toLowerCase().includes(searchTerm.toLowerCase());
   });
 

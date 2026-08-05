@@ -56,9 +56,11 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
     setSaving(true);
     const { alojamentoDate, integradoNome, ...visitData } = formData;
     const integradoId = `i_${(integradoNome || '').replace(/\s+/g, '').toLowerCase()}_${(alojamentoDate || '').replace(/[-/]/g, '')}`;
+    if (!initialData) localStorage.removeItem('VISIT_FORM_DRAFT');
+
     onSave({
       ...visitData,
-      id: initialData ? initialData.id : crypto.randomUUID(),
+      id: initialData ? initialData.id : `v_${crypto.randomUUID()}`,
       integradoId,
       idade: Number(visitData.idade) || 0,
       consumoAcumuladoReal: visitData.consumoAcumuladoReal ? Number(visitData.consumoAcumuladoReal) : undefined,
@@ -89,7 +91,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
       const dateToSearch = name === 'alojamentoDate' ? value : undefined;
       
       if (nomeToSearch) {
-        const matchingIntegradosAll = integrados.filter(i => i.name.toLowerCase() === nomeToSearch.toLowerCase());
+        const matchingIntegradosAll = integrados.filter(i => (i.name || '').toLowerCase() === String(nomeToSearch || '').toLowerCase());
         const emAndamento = matchingIntegradosAll.filter(i => i.status === 'Em andamento');
         
         let integrado = undefined;
@@ -287,7 +289,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
 
           <div className="space-y-2">
             <label className="block text-xs font-semibold text-slate-500 mb-1">Data de Alojamento</label>
-            {(!initialData && !isNewLote && formData.integradoNome && integrados.filter(i => i.name.toLowerCase() === formData.integradoNome?.toLowerCase() && i.status === 'Em andamento').length > 1) ? (
+            {(!initialData && !isNewLote && formData.integradoNome && integrados.filter(i => (i.name || '').toLowerCase() === String(formData.integradoNome || '').toLowerCase() && i.status === 'Em andamento').length > 1) ? (
               <select
                 name="alojamentoDate"
                 required
@@ -296,7 +298,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
                 className="w-full border border-slate-200 rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 {integrados
-                  .filter(i => i.name.toLowerCase() === formData.integradoNome?.toLowerCase() && i.status === 'Em andamento')
+                  .filter(i => (i.name || '').toLowerCase() === String(formData.integradoNome || '').toLowerCase() && i.status === 'Em andamento')
                   .sort((a, b) => new Date(b.alojamentoDate).getTime() - new Date(a.alojamentoDate).getTime())
                   .map(i => (
                     <option key={i.id} value={i.alojamentoDate}>

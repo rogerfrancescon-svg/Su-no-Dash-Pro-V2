@@ -190,6 +190,8 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
     });
   };
 
+  const currentIntegradoId = initialData?.integradoId || `i_${(formData.integradoNome || '').replace(/\s+/g, '').toLowerCase()}_${(formData.alojamentoDate || '').replace(/[-/]/g, '')}`;
+  const integrado = integrados.find(i => i.id === currentIntegradoId);
   const currentIdade = Number(formData.idade) || 0;
   const expectedConsumption = currentIdade > 0 ? getExpectedConsumption(currentIdade, formData.tipoLote as any, formData.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate) : null;
   const expectedWeight = currentIdade > 0 ? getExpectedWeight(currentIdade, formData.tipoLote as any, formData.pesoAloj) : null;
@@ -212,7 +214,6 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
   const currentDiffKg = (currentConsumoReal !== null && expectedConsumption !== null) ? (currentConsumoReal - expectedConsumption) : null;
   const currentDiffPct = (currentDiffKg !== null && expectedConsumption && expectedConsumption > 0) ? (currentDiffKg / expectedConsumption * 100) : null;
 
-  const currentIntegradoId = initialData?.integradoId || `i_${(formData.integradoNome || '').replace(/\s+/g, '').toLowerCase()}_${(formData.alojamentoDate || '').replace(/[-/]/g, '')}`;
   const prevVisit = [...visits]
     .filter(v => v.integradoId === currentIntegradoId && (!initialData || v.id !== initialData.id) && new Date(v.date).getTime() < new Date(formData.date || new Date().toISOString()).getTime())
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];

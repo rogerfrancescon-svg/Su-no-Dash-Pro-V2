@@ -18,7 +18,7 @@ export function Dashboard({ visits, integrados, onNavigateToVisit }: DashboardPr
   const [selectedIntegradoIds, setSelectedIntegradoIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('DASHBOARD_SELECTED_INTEGRADOS');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { const parsed = JSON.parse(saved); if (Array.isArray(parsed)) return parsed; } catch (e) {}
     }
     return [];
   });
@@ -321,9 +321,8 @@ export function Dashboard({ visits, integrados, onNavigateToVisit }: DashboardPr
   };
 
   return (
-    <div className="space-y-6" ref={dashboardRef}>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-bold text-slate-800">Dashboard de Desempenho</h1>
+    <div className="space-y-4" ref={dashboardRef}>
+      <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-3">
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
           
           {selectedIntegradoIds.length === 1 && (
@@ -572,7 +571,7 @@ export function Dashboard({ visits, integrados, onNavigateToVisit }: DashboardPr
                 <Bar dataKey="diferenca" name="Diferença vs Alvo" radius={[4, 4, 0, 0]}>
                   {
                     latestVisitsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={(entry.diferenca >= -5 && entry.diferenca <= 5) ? '#10b981' : entry.diferenca < 0 ? '#ef4444' : '#3b82f6'} />
+                      <Cell key={`cell-${index}`} fill={(Math.abs(entry.diferenca) <= 5) ? '#3b82f6' : entry.diferenca < -5 ? '#10b981' : '#ef4444'} />
                     ))
                   }
                   <LabelList 
@@ -607,7 +606,7 @@ export function Dashboard({ visits, integrados, onNavigateToVisit }: DashboardPr
                         <td 
                           className={`px-4 py-3 font-medium whitespace-nowrap ${onNavigateToVisit ? 'text-blue-600 hover:text-blue-800 cursor-pointer underline' : 'text-slate-800'}`}
                           onClick={() => onNavigateToVisit && onNavigateToVisit(row.id)}
-                          title={onNavigateToVisit ? "Clique para editar este lançamento" : ""}
+                          title={onNavigateToVisit ? "Clique para ver detalhes do lote" : ""}
                         >
                           {row.name}
                           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">
@@ -618,7 +617,7 @@ export function Dashboard({ visits, integrados, onNavigateToVisit }: DashboardPr
                         <td className="px-4 py-3 text-slate-600 text-right font-medium">{row.consumoReal.toFixed(2)} kg</td>
                         <td className="px-4 py-3 text-right">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                            (row.diferenca >= -5 && row.diferenca <= 5) ? 'bg-emerald-100 text-emerald-700' : row.diferenca > 0 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                            (Math.abs(row.diferenca) <= 5) ? 'bg-blue-100 text-blue-700' : row.diferenca < -5 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
                           }`}>
                             {row.diferenca > 0 ? '+' : ''}{row.diferenca.toFixed(2)} kg
                           </span>

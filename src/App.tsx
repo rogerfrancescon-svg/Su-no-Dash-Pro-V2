@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { VisitaForm } from './components/VisitForm';
 import { VisitsList } from './components/Visits';
+import { IntegradoDetailsModal } from './components/IntegradoDetailsModal';
 import { Integrados } from './components/Integrados';
 import { IntegradoForm } from './components/IntegradoForm';
 import { ReferenceCurve } from './components/ReferenceCurve';
@@ -11,7 +12,7 @@ import { ImportData } from './components/ImportData';
 import { Login } from './components/Login';
 import { Notifications } from './components/Notifications';
 import { Visit, Integrado } from './types';
-import { Menu, X, LogOut, Download, Wifi, WifiOff, RefreshCw, Moon, Sun } from 'lucide-react';
+import { Menu, X, LogOut, Download, Wifi, WifiOff, RefreshCw, Moon, Sun, Users, ClipboardList } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { storage } from './lib/storage';
 import { supabase } from './lib/supabase';
@@ -23,6 +24,7 @@ export default function App() {
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [isVisitFormOpen, setIsVisitFormOpen] = useState(false);
   const [isNewLoteMode, setIsNewLoteMode] = useState(false);
+  const [viewingIntegradoId, setViewingIntegradoId] = useState<string | null>(null);
   
   const [integrados, setIntegrados] = useState<Integrado[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -110,7 +112,7 @@ export default function App() {
         } else if (error?.message?.includes('relation "public.profiles" does not exist')) {
           setDbError(`Erro no Supabase: A tabela 'registros' possui uma regra (Policy/RLS) que tenta acessar a tabela 'profiles', que foi deletada. Desative o RLS ou remova a regra no painel do Supabase.`);
         } else if (error?.message?.includes('coluna') || error?.message?.includes('column')) {
-          setDbError(`Erro no Supabase (coluna não encontrada ou cache).\n\nVá ao SQL Editor do Supabase e execute:\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Tipo Lote" text DEFAULT 'Misto';\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Peso aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Pontuação Sanitária" numeric;\nNOTIFY pgrst, 'reload schema';`);
+          setDbError(`Erro no Supabase (coluna não encontrada ou cache).\n\nVá ao SQL Editor do Supabase e execute:\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Tipo Lote" text DEFAULT 'Misto';\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Peso aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Pontuação Sanitária" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 1" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 2" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 3" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Term 1" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Term 2" numeric;\nNOTIFY pgrst, 'reload schema';`);
         } else {
           setDbError(`Erro ao conectar com a tabela 'registros': ${error.message}`);
         }
@@ -130,8 +132,8 @@ export default function App() {
     try {
       const dataIntegrados = await storage.getIntegrados();
       const dataVisits = await storage.getVisits();
-      setIntegrados(dataIntegrados);
-      setVisits(dataVisits);
+      setIntegrados(Array.isArray(dataIntegrados) ? dataIntegrados : []);
+      setVisits(Array.isArray(dataVisits) ? dataVisits : []);
     } catch (e) {
       console.warn('loadData failed', e);
     } finally {
@@ -247,7 +249,7 @@ export default function App() {
       // Create local backup to IndexedDB
       await saveBackupToIndexedDB();
     } catch (error: any) {
-      alert(`Erro ao salvar lançamento:\n\n${error.message}\n\nPara corrigir este erro (incluindo erro de cache), vá ao painel do Supabase, acesse o SQL Editor e execute tudo isto:\n\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Tipo Lote" text DEFAULT 'Misto';\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Peso aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Pontuação Sanitária" numeric;\nNOTIFY pgrst, 'reload schema';`);
+      alert(`Erro ao salvar lançamento:\n\n${error.message}\n\nPara corrigir este erro (incluindo erro de cache), vá ao painel do Supabase, acesse o SQL Editor e execute tudo isto:\n\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Tipo Lote" text DEFAULT 'Misto';\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Peso aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Pontuação Sanitária" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 1" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 2" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 3" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Term 1" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Term 2" numeric;\nNOTIFY pgrst, 'reload schema';`);
       // Revert the optimistic update if needed, but for now we just show the error.
     }
   };
@@ -265,15 +267,23 @@ export default function App() {
       // Create local backup to IndexedDB
       await saveBackupToIndexedDB();
     } catch (error: any) {
-      alert(`Erro ao atualizar lançamento:\n\n${error.message}\n\nPara corrigir este erro (incluindo erro de cache), vá ao painel do Supabase, acesse o SQL Editor e execute tudo isto:\n\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Tipo Lote" text DEFAULT 'Misto';\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Peso aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Pontuação Sanitária" numeric;\nNOTIFY pgrst, 'reload schema';`);
+      alert(`Erro ao atualizar lançamento:\n\n${error.message}\n\nPara corrigir este erro (incluindo erro de cache), vá ao painel do Supabase, acesse o SQL Editor e execute tudo isto:\n\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Tipo Lote" text DEFAULT 'Misto';\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Peso aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Pontuação Sanitária" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Aloj" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 1" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 2" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Cresc 3" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Term 1" numeric;\nALTER TABLE registros ADD COLUMN IF NOT EXISTS "Carga Term 2" numeric;\nNOTIFY pgrst, 'reload schema';`);
     }
   };
 
   const handleDeleteVisit = async (id: string) => {
     try {
+      const visitToDelete = visits.find(v => v.id === id);
       const updatedVisits = visits.filter(v => v.id !== id);
       setVisits(updatedVisits);
       await storage.deleteVisit(id);
+      
+      if (visitToDelete) {
+        const remainingVisits = updatedVisits.filter(v => v.integradoId === visitToDelete.integradoId);
+        if (remainingVisits.length === 0) {
+          await handleDeleteIntegrado(visitToDelete.integradoId);
+        }
+      }
     } catch (error: any) {
       alert(`Erro ao deletar lançamento:\n\n${error.message}\n\nSe for um erro de RLS, acesse o SQL Editor do Supabase e execute:\nALTER TABLE registros DISABLE ROW LEVEL SECURITY;`);
     }
@@ -284,9 +294,42 @@ export default function App() {
     setIsVisitFormOpen(true);
   };
 
-  const handleNavigateToEditVisit = (id: string) => {
-    setCurrentTab('visitas');
-    handleEditVisitClick(id);
+  const handleNavigateToViewIntegrado = (visitId: string) => {
+    const visit = visits.find(v => v.id === visitId);
+    if (visit) {
+      setViewingIntegradoId(visit.integradoId);
+    }
+  };
+
+  const handleUpdateIntegrado = async (integrado: Integrado) => {
+    try {
+      if (isOnline) {
+        const { error } = await supabase
+          .from('integrados')
+          .update(integrado)
+          .eq('id', integrado.id);
+        if (error) throw error;
+      } else {
+        await storage.saveIntegrados([integrado, ...integrados.filter(i => i.id !== integrado.id)]);
+      }
+      setIntegrados(prev => prev.map(i => i.id === integrado.id ? integrado : i));
+    } catch (err: any) {
+      console.error('Erro ao atualizar lote:', err);
+    }
+  };
+
+  const handleDeleteIntegrado = async (id: string) => {
+    try {
+      if (isOnline) {
+        await supabase.from('integrados').delete().eq('id', id);
+      } else {
+        await storage.deleteIntegrado(id);
+      }
+      setIntegrados(prev => prev.filter(i => i.id !== id));
+      setVisits(prev => prev.filter(v => v.integradoId !== id));
+    } catch (err: any) {
+      console.error('Erro ao deletar lote:', err);
+    }
   };
 
   const handleTabChange = (tab: string) => {
@@ -403,7 +446,7 @@ export default function App() {
     return (
       <>
         <div style={{ display: currentTab === 'dashboard' ? 'block' : 'none' }}>
-          <Dashboard visits={visits} integrados={integrados} onNavigateToVisit={handleNavigateToEditVisit} />
+          <Dashboard visits={visits} integrados={integrados} onNavigateToVisit={handleNavigateToViewIntegrado} />
         </div>
         
         {currentTab === 'visitas' && (
@@ -428,42 +471,34 @@ export default function App() {
                 onExport={handleExport}
                 onNewVisit={() => { setEditingVisitId(null); setIsNewLoteMode(false); setIsVisitFormOpen(true); }}
                 onNewLote={() => { setEditingVisitId(null); setIsNewLoteMode(true); setIsVisitFormOpen(true); }}
+                viewingIntegradoId={viewingIntegradoId}
+                onSetViewingIntegradoId={setViewingIntegradoId}
               />
             </div>
           )
         )}
         
         {currentTab === 'integrados' && (
-          <Integrados 
-            integrados={integrados} 
+          <Integrados
+            integrados={integrados}
             visits={visits}
             totalVisits={visits.length}
-            onUpdate={async (updated) => {
-              const updatedIntegrados = integrados.map(i => i.id === updated.id ? updated : i);
-              setIntegrados(updatedIntegrados);
-              await storage.saveIntegrados(updatedIntegrados);
-              const visitsToSync = visits.filter(v => v.integradoId === updated.id);
-              await storage.saveVisits(visits, visitsToSync);
-            }}
-            onDelete={async (id) => {
-              try {
-                const updatedIntegrados = integrados.filter(i => i.id !== id);
-                setIntegrados(updatedIntegrados);
-                
-                const visitsToDelete = visits.filter(v => v.integradoId === id).map(v => v.id);
-                const updatedVisits = visits.filter(v => v.integradoId !== id);
-                setVisits(updatedVisits);
-                
-                await storage.deleteIntegrado(id, visitsToDelete as string[]);
-              } catch (error: any) {
-                alert(`Erro ao deletar integrado:\n\n${error.message}\n\nSe for um erro de RLS, acesse o SQL Editor do Supabase e execute:\nALTER TABLE registros DISABLE ROW LEVEL SECURITY;`);
-              }
-            }}
+            onUpdate={handleUpdateIntegrado}
+            onDelete={handleDeleteIntegrado}
           />
         )}
         
         {currentTab === 'curva' && <ReferenceCurve />}
         {currentTab === 'importar' && <ImportData onImportComplete={() => { loadData(); setCurrentTab('dashboard'); }} />}
+
+        {viewingIntegradoId && (
+          <IntegradoDetailsModal
+            integradoId={viewingIntegradoId}
+            visits={visits}
+            integrados={integrados}
+            onClose={() => setViewingIntegradoId(null)}
+          />
+        )}
       </>
     );
   };
@@ -472,7 +507,7 @@ export default function App() {
     switch(currentTab) {
       case 'dashboard': return 'Dashboard de Desempenho';
       case 'visitas': return isVisitFormOpen ? (editingVisitId ? 'Editar Lançamento' : (isNewLoteMode ? 'Novo Lote' : 'Novo Lançamento')) : 'Visitas';
-      case 'integrados': return 'Histórico de Integrados';
+      case 'integrados': return 'Gestão de Lotes';
       case 'curva': return 'Curva de Referência';
       case 'importar': return 'Importar Base de Dados';
       default: return 'Visão Geral';
@@ -518,7 +553,27 @@ export default function App() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h1 className="text-lg md:text-xl font-bold text-slate-800 truncate">{getPageTitle()}</h1>
+                        <h1 className="text-lg md:text-xl font-bold text-slate-800 truncate">{getPageTitle()}</h1>
+            {currentTab === 'integrados' && (
+              <div className="hidden sm:flex items-center gap-3 text-xs text-slate-600 ml-2 border-l border-slate-200 pl-4">
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-blue-500" />
+                  <span>Total: <strong className="text-slate-800">{integrados.length}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <span>Ativos: <strong className="text-slate-800">{integrados.filter(i => i.status === 'Em andamento').length}</strong></span>
+                </div>
+              </div>
+            )}
+            {currentTab === 'visitas' && !isVisitFormOpen && (
+              <div className="hidden sm:flex items-center gap-3 text-xs text-slate-600 ml-2 border-l border-slate-200 pl-4">
+                <div className="flex items-center gap-1.5">
+                  <ClipboardList className="w-4 h-4 text-blue-500" />
+                  <span>Lançamentos: <strong className="text-slate-800">{visits.length}</strong></span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-1 sm:gap-4 shrink-0">
             <div className="hidden lg:flex flex-col items-end justify-center mr-2">
@@ -565,8 +620,8 @@ export default function App() {
             </button>
           </div>
         </header>
-        <div className="flex-1 p-4 md:p-8 overflow-y-auto w-full">
-          <div className="max-w-7xl mx-auto w-full">
+        <div className="flex-1 p-2 md:p-6 overflow-y-auto w-full">
+          <div className="max-w-[1600px] mx-auto w-full">
             {dbError && (
               <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md">
                 <div className="flex">

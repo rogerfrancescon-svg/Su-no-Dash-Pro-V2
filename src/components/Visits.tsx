@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Visit, Integrado } from '../types';
 import { getExpectedConsumption } from '../data';
-import { Search, ArrowUpDown, Download, Plus, Eye, X } from 'lucide-react';
+import { Search, ArrowUpDown, Download, Plus, Eye, X, Trash2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 
 interface VisitsListProps {
   visits: Visit[];
@@ -11,15 +12,23 @@ interface VisitsListProps {
   onNewVisit?: () => void;
   onNewLote?: () => void;
   onExport?: (data?: Visit[]) => void;
+  viewingIntegradoId?: string | null;
+  onSetViewingIntegradoId?: (id: string | null) => void;
 }
 
 type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'idade-desc' | 'idade-asc';
 
-export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onNewVisit, onNewLote, onExport }: VisitsListProps) {
+export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onNewVisit, onNewLote, onExport, viewingIntegradoId, onSetViewingIntegradoId }: VisitsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [selectedIntegradoDetails, setSelectedIntegradoDetails] = useState<string | null>(null);
+  const [internalSelected, setInternalSelected] = useState<string | null>(null);
+
+  const selectedIntegradoDetails = viewingIntegradoId !== undefined ? viewingIntegradoId : internalSelected;
+  const setSelectedIntegradoDetails = (id: string | null) => {
+    if (onSetViewingIntegradoId) onSetViewingIntegradoId(id);
+    setInternalSelected(id);
+  };
 
   const getIntegradoName = (integradoId: string) => {
     return integrados.find(i => i.id === integradoId)?.name || '';
@@ -53,7 +62,7 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-         <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 border border-slate-200 px-3 py-2 rounded flex-1 sm:flex-none">
+         <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1.5 rounded flex-1 sm:flex-none">
            <ArrowUpDown className="w-4 h-4" />
            <select 
              value={sortBy}
@@ -138,6 +147,7 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
+              <AnimatePresence>
               {filteredVisits.length === 0 ? (
                 <tr>
                   <td colSpan={27} className="px-5 py-8 text-center text-slate-500">Nenhuma visita encontrada.</td>
@@ -147,7 +157,14 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
                 const expected = getExpectedConsumption(v.idade, v.tipoLote, v.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate);
 
                 return (
-                  <tr key={v.id} className="hover:bg-slate-50 transition-colors">
+                  <motion.tr 
+                    layout 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }} 
+                    key={v.id} 
+                    className="hover:bg-slate-50 transition-colors"
+                  >
                     <td className="px-2 py-2 whitespace-nowrap">{
                       new Date(Number(v.date.split('-')[0]), Number(v.date.split('-')[1]) - 1, Number(v.date.split('-')[2])).toLocaleDateString('pt-BR')
                     }</td>
@@ -224,204 +241,71 @@ export function VisitsList({ visits, integrados, onEditVisit, onDeleteVisit, onN
                         >
                           Editar
                         </button>
-                        {deleteConfirmId === v.id ? (
-                          <div className="flex items-center justify-center gap-1 w-full">
-                            <button 
-                              onClick={() => {
-                                onDeleteVisit(v.id);
-                                setDeleteConfirmId(null);
-                              }}
-                              className="text-white bg-red-500 hover:bg-red-600 text-[10px] font-bold px-2 py-1 rounded transition-colors flex-1"
-                            >
-                              Sim
-                            </button>
-                            <button 
-                              onClick={() => setDeleteConfirmId(null)}
-                              className="text-slate-600 bg-slate-200 hover:bg-slate-300 text-[10px] font-bold px-2 py-1 rounded transition-colors flex-1"
-                            >
-                              Não
-                            </button>
-                          </div>
-                        ) : (
-                          <button 
-                            onClick={() => setDeleteConfirmId(v.id)}
-                            className="text-red-600 hover:text-red-800 text-xs font-semibold px-2 py-1 rounded hover:bg-red-50 transition-colors w-full text-center"
-                          >
-                            Apagar
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => setDeleteConfirmId(v.id)}
+                          className="text-red-600 hover:text-red-800 text-xs font-semibold px-2 py-1 rounded hover:bg-red-50 transition-colors w-full text-center"
+                        >
+                          Apagar
+                        </button>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
       </div>
 
-      {selectedIntegradoDetails && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Detalhes do Lote: {getIntegradoName(selectedIntegradoDetails)}
-              </h3>
-              <button 
-                onClick={() => setSelectedIntegradoDetails(null)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                  <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Status</div>
-                  <div className="text-sm font-medium text-slate-700">
-                    {integrados.find(i => i.id === selectedIntegradoDetails)?.status || 'Desconhecido'}
-                  </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => setDeleteConfirmId(null)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+              className="bg-white rounded-xl shadow-xl w-full max-w-md relative z-10 overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4 mx-auto">
+                  <Trash2 className="w-6 h-6 text-red-600" />
                 </div>
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                  <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Total de Visitas</div>
-                  <div className="text-sm font-medium text-slate-700">
-                    {visits.filter(v => v.integradoId === selectedIntegradoDetails).length}
-                  </div>
+                <h3 className="text-lg font-bold text-slate-900 text-center mb-2">Excluir lançamento?</h3>
+                <p className="text-sm text-slate-500 text-center mb-6">
+                  Tem certeza que deseja apagar este lançamento? Esta ação removerá a visita permanentemente. <br/><br/><strong>Atenção:</strong> Se este for o único lançamento do lote, o lote também será excluído.
+                </p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (deleteConfirmId) onDeleteVisit(deleteConfirmId);
+                      setDeleteConfirmId(null);
+                    }}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    Sim, excluir
+                  </button>
                 </div>
               </div>
-              
-              {(() => {
-                const loteVisits = visits.filter(v => v.integradoId === selectedIntegradoDetails)
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                const latestVisit = loteVisits.length > 0 ? loteVisits[0] : null;
-                const phases = [
-                  { id: 'Alojamento', label: 'Alojamento', metaKey: 'metaAlojamento', consKey: 'consumoAlojamento' },
-                  { id: 'Crescimento1', label: 'Crescimento 1', metaKey: 'metaCrescimento1', consKey: 'consumoCrescimento1' },
-                  { id: 'Crescimento2', label: 'Crescimento 2', metaKey: 'metaCrescimento2', consKey: 'consumoCrescimento2' },
-                  { id: 'Crescimento3', label: 'Crescimento 3', metaKey: 'metaCrescimento3', consKey: 'consumoCrescimento3' },
-                  { id: 'Terminacao1', label: 'Terminação 1', metaKey: 'metaTerminacao1', consKey: 'consumoTerminacao1' },
-                  { id: 'Terminacao2', label: 'Terminação 2', metaKey: 'metaTerminacao2', consKey: 'consumoTerminacao2' },
-                ];
-                
-                return (
-                  <>
-                    {latestVisit && (
-                      <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Consumo por Fase (Última Visita)</h4>
-                        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                          <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-50 text-slate-500">
-                              <tr>
-                                <th className="px-4 py-2 font-medium">Fase</th>
-                                <th className="px-4 py-2 font-medium">Meta (kg)</th>
-                                <th className="px-4 py-2 font-medium">Consumo (kg)</th>
-                                <th className="px-4 py-2 font-medium">Desvio (kg)</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {phases.map(phase => {
-                                const meta = (latestVisit as any)[phase.metaKey];
-                                const cons = (latestVisit as any)[phase.consKey];
-                                const diff = (cons && meta) ? Number((cons - meta).toFixed(2)) : null;
-                                return (
-                                  <tr key={phase.id}>
-                                    <td className="px-4 py-2 text-slate-700">{phase.label}</td>
-                                    <td className="px-4 py-2 text-slate-600">{meta ?? '-'}</td>
-                                    <td className={`px-4 py-2 font-medium ${diff !== null && Math.abs(diff) <= 1 ? 'text-blue-600' : diff !== null && diff > 1 ? 'text-red-600' : diff !== null && diff < -1 ? 'text-green-600' : 'text-slate-600'}`}>{cons ?? '-'}</td>
-                                    <td className={`px-4 py-2 font-medium ${diff !== null && Math.abs(diff) <= 1 ? 'text-blue-600' : diff !== null && diff > 1 ? 'text-red-600' : diff !== null && diff < -1 ? 'text-green-600' : 'text-slate-600'}`}>
-                                      {diff !== null ? (diff > 0 ? `+${diff}` : diff) : '-'}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Histórico de Visitas</h4>
-                  </>
-                );
-              })()}
-              <div className="space-y-3">
-                {visits.filter(v => v.integradoId === selectedIntegradoDetails)
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((visit) => (
-                    <div key={visit.id} className="border border-slate-100 rounded-lg p-4 hover:border-slate-200 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-slate-800">
-                          {new Date(Number(visit.date.split('-')[0]), Number(visit.date.split('-')[1]) - 1, Number(visit.date.split('-')[2])).toLocaleDateString('pt-BR')}
-                        </div>
-                        <div className="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded">
-                          Idade: {visit.idade} dias
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                        {(() => {
-                          const consumoReal = visit.consumoAcumuladoReal;
-                          const integrado = integrados.find(i => i.id === visit.integradoId);
-                          const consumoEsperado = getExpectedConsumption(visit.idade, visit.tipoLote, visit.pesoAloj, integrado?.alojamentoDate, integrado?.status, integrado?.fechamentoDate);
-                          const diffAcumulado = (consumoReal && consumoEsperado) ? Number((consumoReal - consumoEsperado).toFixed(2)) : null;
-                          return (
-                            <>
-                              <div>
-                                <span className="text-slate-500 mr-1">Consumo Real:</span>
-                                <span className={`font-semibold ${diffAcumulado !== null && Math.abs(diffAcumulado) <= 1 ? 'text-blue-600' : diffAcumulado !== null && diffAcumulado > 1 ? 'text-red-600' : diffAcumulado !== null && diffAcumulado < -1 ? 'text-green-600' : 'text-slate-700'}`}>
-                                  {consumoReal ?? '-'} kg
-                                  {diffAcumulado !== null && (
-                                    <span className="text-xs ml-1 opacity-80">
-                                      ({diffAcumulado > 0 ? `+${diffAcumulado}` : diffAcumulado})
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-slate-500 mr-1">Consumo Esperado:</span>
-                                <span className="font-semibold text-slate-700">{consumoEsperado} kg</span>
-                              </div>
-                            </>
-                          );
-                        })()}
-                        <div>
-                          <span className="text-slate-500 mr-1">Animais Alojados:</span>
-                          <span className="font-medium text-slate-700">{visit.animaisAlojados ?? '-'}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 mr-1">Mortalidade:</span>
-                          <span className="font-medium text-slate-700 flex items-center gap-1.5">
-                            {visit.animaisMortos ?? '-'}
-                            {visit.animaisMortos !== undefined && visit.animaisMortos !== null && visit.animaisAlojados ? (
-                              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
-                                {((Number(visit.animaisMortos) / Number(visit.animaisAlojados)) * 100).toFixed(2)}%
-                              </span>
-                            ) : visit.mortalidade ? (
-                              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
-                                {visit.mortalidade}%
-                              </span>
-                            ) : null}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {visit.recomendacao && (
-                        <div className="bg-amber-50 text-amber-800 p-3 rounded text-xs leading-relaxed border border-amber-100/50">
-                          <strong>Recomendação:</strong><br />
-                          {visit.recomendacao}
-                        </div>
-                      )}
-                    </div>
-                ))}
-                {visits.filter(v => v.integradoId === selectedIntegradoDetails).length === 0 && (
-                  <div className="text-sm text-slate-500 text-center py-4">Nenhuma visita registrada.</div>
-                )}
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

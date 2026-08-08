@@ -261,7 +261,7 @@ export function preprocessImportData(rawData: string): PreProcessedData {
     const tipoLote = tipoLoteRaw.toLowerCase().includes('f') ? 'Fêmea' : 'Misto';
     
     // try to get alojamento date and status if integrated exists
-    const integradoMatch = existingIntegrados.find(i => (i.name || '').toLowerCase() === cleanIntegradoName);
+    const integradoMatch = integradosMap.get(id);
     const { metas } = getActiveCurve(integradoMatch?.alojamentoDate, integradoMatch?.status, tipoLote, integradoMatch?.fechamentoDate);
 
     visits.push({

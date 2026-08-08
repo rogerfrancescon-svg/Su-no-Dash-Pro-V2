@@ -930,7 +930,7 @@ const defaultMetasV2 = {
 export const growthCurvesMisto: CurveVersion[] = [
   {
     version: 'v1',
-    effectiveDate: '2020-01-01',
+    effectiveDate: '2026-01-01',
     curve: growthCurveV1,
     metas: defaultMetasV1,
   },

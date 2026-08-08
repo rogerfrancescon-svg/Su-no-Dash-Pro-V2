@@ -160,20 +160,11 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
         if (newData.cargaTerminacao1) newData.consumoTerminacao1 = Number((Number(newData.cargaTerminacao1) / vivos).toFixed(2));
         if (newData.cargaTerminacao2) newData.consumoTerminacao2 = Number((Number(newData.cargaTerminacao2) / vivos).toFixed(2));
         
-        // volumeTotalCargas is now the sum of all specific cargas if not explicitly overridden, or we can just calculate it:
+        // volumeTotalCargas is always the sum of all specific cargas
         const sumCargas = (Number(newData.cargaAlojamento) || 0) + (Number(newData.cargaCrescimento1) || 0) + (Number(newData.cargaCrescimento2) || 0) + (Number(newData.cargaCrescimento3) || 0) + (Number(newData.cargaTerminacao1) || 0) + (Number(newData.cargaTerminacao2) || 0);
         
-        if (sumCargas > 0 && !['volumeTotalCargas', 'consumoAcumuladoReal'].includes(name)) {
-           newData.volumeTotalCargas = sumCargas;
-           newData.consumoAcumuladoReal = Number((sumCargas / vivos).toFixed(2));
-        } else {
-           const volume = Number(newData.volumeTotalCargas) || 0;
-           if (volume > 0) {
-             newData.consumoAcumuladoReal = Number((volume / vivos).toFixed(2));
-           } else if (name === 'volumeTotalCargas' && !newData.volumeTotalCargas) {
-             newData.consumoAcumuladoReal = undefined;
-           }
-        }
+        newData.volumeTotalCargas = sumCargas > 0 ? sumCargas : undefined;
+        newData.consumoAcumuladoReal = sumCargas > 0 ? Number((sumCargas / vivos).toFixed(2)) : undefined;
       }
 
       if ((name === 'date' || name === 'alojamentoDate' || name === 'integradoNome') && newData.date && newData.alojamentoDate) {
@@ -332,9 +323,9 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
                 <span className="flex items-center gap-2 justify-end">Peso Esperado: <strong className="text-blue-900">{expectedWeight ? expectedWeight.toFixed(2) : '-'} kg</strong></span>
                 <span className="flex items-center gap-2 justify-end">Consumo Esperado: <strong className="text-blue-900">{expectedConsumption || '-'} kg/cab</strong></span>
                 
-                <span className="flex items-center gap-2 justify-end">Consumo Real (Calculado): <strong className={currentDiffKg !== null && Math.abs(currentDiffKg) <= 1 ? 'text-blue-600' : currentDiffKg !== null && currentDiffKg > 1 ? 'text-red-600' : currentDiffKg !== null && currentDiffKg < -1 ? 'text-green-600' : 'text-slate-600'}>{formData.consumoAcumuladoReal || '-'} kg/cab</strong></span>
+                <span className="flex items-center gap-2 justify-end">Consumo Real (Calculado): <strong className={currentDiffKg !== null && Math.abs(currentDiffKg) <= 5 ? 'text-blue-600' : currentDiffKg !== null && currentDiffKg > 5 ? 'text-red-600' : currentDiffKg !== null && currentDiffKg < -5 ? 'text-emerald-600' : 'text-slate-600'}>{formData.consumoAcumuladoReal || '-'} kg/cab</strong></span>
                 {currentDiffKg !== null && currentDiffPct !== null && (
-                  <span className={`flex items-center gap-2 justify-end text-xs font-semibold ${Math.abs(currentDiffKg) <= 1 ? 'text-blue-600' : currentDiffKg > 1 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  <span className={`flex items-center gap-2 justify-end text-xs font-semibold ${Math.abs(currentDiffKg) <= 5 ? 'text-blue-600' : currentDiffKg > 5 ? 'text-red-600' : 'text-emerald-600'}`}>
                     Diferença: {currentDiffKg > 0 ? '+' : ''}{currentDiffKg.toFixed(2)} kg ({currentDiffKg > 0 ? '+' : ''}{currentDiffPct.toFixed(1)}%)
                   </span>
                 )}
@@ -489,14 +480,14 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
                       <input type="number" step="0.01" name={phase.cargaKey} value={(formData as any)[phase.cargaKey] || ''} onChange={handleChange} className="w-full border border-slate-200 rounded p-1.5 text-xs md:text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00" />
                     </td>
                     <td className="py-2 pr-2 md:pr-4">
-                      <input type="number" step="0.01" name={phase.consKey} value={(formData as any)[phase.consKey] || ''} onChange={handleChange} className={`w-full border border-slate-200 rounded p-1.5 text-xs md:text-sm bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 outline-none ${diff !== null && Math.abs(diff) <= 1 ? 'text-blue-600' : diff !== null && diff > 1 ? 'text-red-600' : diff !== null && diff < -1 ? 'text-green-600' : 'text-slate-600'}`} readOnly placeholder="0.00" />
+                      <input type="number" step="0.01" name={phase.consKey} value={(formData as any)[phase.consKey] || ''} onChange={handleChange} className={`w-full border border-slate-200 rounded p-1.5 text-xs md:text-sm bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 outline-none ${diff !== null && Math.abs(diff) <= 1 ? 'text-blue-600' : diff !== null && diff > 1 ? 'text-red-600' : diff !== null && diff < -1 ? 'text-emerald-600' : 'text-slate-600'}`} readOnly placeholder="0.00" />
                     </td>
                     <td className="py-2 pr-2 md:pr-4 text-slate-500 text-xs md:text-sm">
                       {(formData as any)[phase.metaKey] || '-'}
                     </td>
                     <td className="py-2 pr-2 md:pr-4 text-xs md:text-sm font-medium">
                       {diff !== null && diffPct !== null ? (
-                        <span className={Math.abs(diff) <= 1 ? 'text-blue-600' : diff > 1 ? 'text-red-600' : 'text-green-600'}>
+                        <span className={Math.abs(diff) <= 1 ? 'text-blue-600' : diff > 1 ? 'text-red-600' : 'text-emerald-600'}>
                           {diff > 0 ? '+' : ''}{diff.toFixed(2)} kg ({diff > 0 ? '+' : ''}{diffPct.toFixed(1)}%)
                         </span>
                       ) : '-'}
@@ -508,10 +499,10 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
                 <tr>
                   <td className="py-3 pr-2 md:pr-4 pl-2 text-slate-700 text-xs md:text-sm">TOTAL ACUMULADO</td>
                   <td className="py-3 pr-2 md:pr-4">
-                    <input type="number" step="0.01" name="volumeTotalCargas" value={formData.volumeTotalCargas || ''} onChange={handleChange} className="w-full border border-slate-200 rounded p-1.5 text-xs md:text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00" />
+                    <input type="number" step="0.01" name="volumeTotalCargas" value={formData.volumeTotalCargas || ''} onChange={handleChange} className="w-full border border-slate-200 rounded p-1.5 text-xs md:text-sm font-bold bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none" readOnly placeholder="0.00" />
                   </td>
                   <td className="py-3 pr-2 md:pr-4">
-                    <input type="number" step="0.01" name="consumoAcumuladoReal" value={formData.consumoAcumuladoReal || ''} onChange={handleChange} className={`w-full border border-slate-200 rounded p-1.5 text-xs md:text-sm font-bold bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none ${currentDiffKg !== null && Math.abs(currentDiffKg) <= 1 ? 'text-blue-600' : currentDiffKg !== null && currentDiffKg > 1 ? 'text-red-600' : currentDiffKg !== null && currentDiffKg < -1 ? 'text-green-600' : 'text-slate-700'}`} readOnly placeholder="0.00" />
+                    <input type="number" step="0.01" name="consumoAcumuladoReal" value={formData.consumoAcumuladoReal || ''} onChange={handleChange} className={`w-full border border-slate-200 rounded p-1.5 text-xs md:text-sm font-bold bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none ${currentDiffKg !== null && Math.abs(currentDiffKg) <= 5 ? 'text-blue-600' : currentDiffKg !== null && currentDiffKg > 5 ? 'text-red-600' : currentDiffKg !== null && currentDiffKg < -5 ? 'text-emerald-600' : 'text-slate-700'}`} readOnly placeholder="0.00" />
                   </td>
                   <td className="py-3 pr-2 md:pr-4 text-slate-500 text-xs md:text-sm">
                     {formData.metaAcumulada || '-'}
@@ -600,7 +591,7 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
                       x={currentIdade} 
                       y={Number(formData.consumoAcumuladoReal)} 
                       r={6} 
-                      fill={(currentDiffKg !== null && currentDiffKg >= -5 && currentDiffKg <= 5) ? "#10b981" : (currentDiffKg !== null && currentDiffKg < -5) ? "#ef4444" : "#3b82f6"} 
+                      fill={(currentDiffKg !== null && Math.abs(currentDiffKg) <= 5) ? "#3b82f6" : (currentDiffKg !== null && currentDiffKg < -5) ? "#10b981" : "#ef4444"} 
                       stroke="white" 
                       strokeWidth={2}
                        
@@ -610,9 +601,9 @@ export function VisitaForm({ integrados, visits = [], initialData, isNewLote, on
               </ResponsiveContainer>
               <p className="text-xs text-center text-slate-500 mt-2">
                 O ponto colorido mostra o consumo real atual vs a curva esperada.<br className="md:hidden" />
-                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500 ml-2 mr-1 align-middle"></span> Na meta (±5kg)
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500 ml-2 mr-1 align-middle"></span> Abaixo (&lt;-5kg)
-                <span className="inline-block w-3 h-3 rounded-full bg-blue-500 ml-2 mr-1 align-middle"></span> Acima (&gt;5kg)
+                <span className="inline-block w-3 h-3 rounded-full bg-blue-500 ml-2 mr-1 align-middle"></span> Na meta (±5kg)
+                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500 ml-2 mr-1 align-middle"></span> Abaixo (&lt;-5kg)
+                <span className="inline-block w-3 h-3 rounded-full bg-red-500 ml-2 mr-1 align-middle"></span> Acima (&gt;5kg)
               </p>
             </div>
           </div>

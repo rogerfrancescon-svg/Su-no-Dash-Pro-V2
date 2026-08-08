@@ -11,7 +11,7 @@ export const OFFLINE_DELETE_INTEGRADO_QUEUE = 'suino_dashpro_offline_delete_inte
 const getIntegradosLocal = (): Integrado[] => {
   try {
     const data = localStorage.getItem(INTEGRADOS_KEY);
-    return data ? JSON.parse(data) : [];
+    const parsed = data ? JSON.parse(data) : []; return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -20,7 +20,7 @@ const getIntegradosLocal = (): Integrado[] => {
 const getVisitsLocal = (): Visit[] => {
   try {
     const data = localStorage.getItem(VISITS_KEY);
-    return data ? JSON.parse(data) : [];
+    const parsed = data ? JSON.parse(data) : []; return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -251,14 +251,22 @@ export const storage = {
           const consCresc3 = parseFloatSafe(getCol(row, 'Cons. Cresc 3'));
           const consTerm1 = parseFloatSafe(getCol(row, 'Cons. Term 1'));
           const consTerm2 = parseFloatSafe(getCol(row, 'Cons. Term 2'));
+
+          // Prefer direct value from Supabase, otherwise fallback to local calculation
+          const dbCargaAloj = parseFloatSafe(getCol(row, 'Carga Aloj'));
+          const dbCargaCresc1 = parseFloatSafe(getCol(row, 'Carga Cresc 1'));
+          const dbCargaCresc2 = parseFloatSafe(getCol(row, 'Carga Cresc 2'));
+          const dbCargaCresc3 = parseFloatSafe(getCol(row, 'Carga Cresc 3'));
+          const dbCargaTerm1 = parseFloatSafe(getCol(row, 'Carga Term 1'));
+          const dbCargaTerm2 = parseFloatSafe(getCol(row, 'Carga Term 2'));
           
           visits.push({
-            cargaAlojamento: vivos > 0 && consAloj !== undefined ? Number((vivos * consAloj).toFixed(2)) : undefined,
-            cargaCrescimento1: vivos > 0 && consCresc1 !== undefined ? Number((vivos * consCresc1).toFixed(2)) : undefined,
-            cargaCrescimento2: vivos > 0 && consCresc2 !== undefined ? Number((vivos * consCresc2).toFixed(2)) : undefined,
-            cargaCrescimento3: vivos > 0 && consCresc3 !== undefined ? Number((vivos * consCresc3).toFixed(2)) : undefined,
-            cargaTerminacao1: vivos > 0 && consTerm1 !== undefined ? Number((vivos * consTerm1).toFixed(2)) : undefined,
-            cargaTerminacao2: vivos > 0 && consTerm2 !== undefined ? Number((vivos * consTerm2).toFixed(2)) : undefined,
+            cargaAlojamento: dbCargaAloj ?? (vivos > 0 && consAloj !== undefined ? Number((vivos * consAloj).toFixed(2)) : undefined),
+            cargaCrescimento1: dbCargaCresc1 ?? (vivos > 0 && consCresc1 !== undefined ? Number((vivos * consCresc1).toFixed(2)) : undefined),
+            cargaCrescimento2: dbCargaCresc2 ?? (vivos > 0 && consCresc2 !== undefined ? Number((vivos * consCresc2).toFixed(2)) : undefined),
+            cargaCrescimento3: dbCargaCresc3 ?? (vivos > 0 && consCresc3 !== undefined ? Number((vivos * consCresc3).toFixed(2)) : undefined),
+            cargaTerminacao1: dbCargaTerm1 ?? (vivos > 0 && consTerm1 !== undefined ? Number((vivos * consTerm1).toFixed(2)) : undefined),
+            cargaTerminacao2: dbCargaTerm2 ?? (vivos > 0 && consTerm2 !== undefined ? Number((vivos * consTerm2).toFixed(2)) : undefined),
             id: getCol(row, 'id'),
             integradoId: integradoId,
             date: dataVisita,
@@ -361,6 +369,12 @@ export const storage = {
         'Cons. Term 1': toNum(v.consumoTerminacao1),
         'Meta Term 2': toNum(v.metaTerminacao2),
         'Cons. Term 2': toNum(v.consumoTerminacao2),
+        'Carga Aloj': toNum(v.cargaAlojamento),
+        'Carga Cresc 1': toNum(v.cargaCrescimento1),
+        'Carga Cresc 2': toNum(v.cargaCrescimento2),
+        'Carga Cresc 3': toNum(v.cargaCrescimento3),
+        'Carga Term 1': toNum(v.cargaTerminacao1),
+        'Carga Term 2': toNum(v.cargaTerminacao2),
         'Meta Acum.': toNum(v.metaAcumulada),
         'Peso aloj': toNum(v.pesoAloj),
         'Pontuação Sanitária': toNum(v.pontuacaoSanitaria),
